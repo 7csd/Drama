@@ -1,0 +1,15 @@
+Drama · 帧序工作台迁移说明
+
+1. 解压 ZIP，进入 Drama 文件夹。
+2. 新电脑安装 Python 3.12 和 Node.js 20 或更高版本，并让 python、npm 命令可以在 PowerShell 中使用。
+3. 在 Drama 文件夹打开 PowerShell，运行：
+   powershell -ExecutionPolicy Bypass -File .\start-workbench.ps1
+   首次启动需要联网安装 Python 依赖和前端依赖，并构建页面。
+4. 打开 http://127.0.0.1:8787/drama 。默认是离线模拟模式，不调用付费模型。
+5. 完整使用和云服务接入说明见 README_WORKBENCH.md 。
+
+压缩包包含项目源码、文档、测试、示例配置、上游素材和依赖锁文件。
+未包含虚拟环境、node_modules、构建产物、缓存、API 密钥、Git 历史和本机运行数据。
+在新电脑启动后会创建新的本地数据库与项目数据；原电脑的样片和审阅记录不在此源码包中。
+
+上传自己的仓库时，在 Drama 文件夹中执行 git init，然后添加你自己的远程地址。

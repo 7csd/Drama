@@ -1,0 +1,8 @@
+# Copy to configs/drama.local.yaml. Never commit credentials.
+# Used only when DRAMA_ENABLE_LIVE=1. Use a vision-capable chat model.
+chat_model:
+  init_args:
+    model_provider: openai
+    model: YOUR_VISION_CAPABLE_MODEL
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: REPLACE_WITH_YOUR_KEY
