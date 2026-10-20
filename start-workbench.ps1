@@ -16,5 +16,5 @@ try {
     npm.cmd run build
     if ($LASTEXITCODE -ne 0) { throw '前端构建失败' }
 } finally { Pop-Location }
-Write-Host "帧序工作台：http://127.0.0.1:$Port/drama"
+Write-Host "短剧工作台：http://127.0.0.1:$Port/drama"
 & .\.venv\Scripts\python.exe -m uvicorn workbench.api:app --host 127.0.0.1 --port $Port

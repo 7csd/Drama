@@ -35,7 +35,7 @@ def create_app(data_dir=None, provider=None, start_worker=True):
                 with contextlib.suppress(asyncio.CancelledError):
                     await task
 
-    app = FastAPI(title="帧序 · AI 短剧工作台", lifespan=lifespan)
+    app = FastAPI(title="短剧 · AI 短剧工作台", lifespan=lifespan)
     app.state.engine = engine
 
     @app.middleware("http")

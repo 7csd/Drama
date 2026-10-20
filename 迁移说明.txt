@@ -1,4 +1,4 @@
-Drama · 帧序工作台迁移说明
+Drama · 短剧工作台迁移说明
 
 1. 解压 ZIP，进入 Drama 文件夹。
 2. 新电脑安装 Python 3.12 和 Node.js 20 或更高版本，并让 python、npm 命令可以在 PowerShell 中使用。

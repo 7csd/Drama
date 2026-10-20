@@ -173,7 +173,7 @@ export default function DramaWorkbench() {
   }
 
   useEffect(() => {
-    document.title = "帧序 · AI 短剧工作台";
+    document.title = "短剧 · AI 短剧工作台";
     document.documentElement.lang = "zh-CN";
     Promise.all([api<Project[]>("/projects"), api<Health>("/health")])
       .then(([items, state]) => {
@@ -278,7 +278,7 @@ export default function DramaWorkbench() {
             <Clapperboard size={23} />
           </span>
           <span>
-            帧序<small>DRAMA WORKSPACE</small>
+            短剧<small>DRAMA WORKSPACE</small>
           </span>
         </a>
         <div className="dw-space-label">
@@ -1120,7 +1120,7 @@ export default function DramaWorkbench() {
             </>
           )}
           <footer className="dw-footer">
-            <span>帧序 / FRAME BY FRAME</span>
+            <span>短剧 / DRAMA</span>
             <span>基于 ViMax · 创作由你掌舵</span>
           </footer>
         </div>
