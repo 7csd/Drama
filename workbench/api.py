@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import json
-import math
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -59,8 +58,8 @@ def create_app(data_dir=None, provider=None, start_worker=True):
         import importlib.util
         return {"ok": True, "mode": engine.provider.mode, "concurrency": 2, "max_retries": 2,
                 "vimax_available": importlib.util.find_spec("langchain") is not None,
-                "fal_configured": bool(os.environ.get("FAL_KEY")),
-                "voice_configured": bool(os.environ.get("DASHSCOPE_API_KEY")), "config": engine.provider.public_config()}
+                "fal_configured": bool(engine.provider.config.get("fal_key")),
+                "voice_configured": bool(engine.provider.config.get("dashscope_api_key")), "config": engine.provider.public_config()}
 
     @app.get("/api/drama/projects")
     def projects():
@@ -202,21 +201,10 @@ def create_app(data_dir=None, provider=None, start_worker=True):
 
     @app.put("/api/drama/config")
     async def config(request: Request):
-        config = await request.json()
-        allowed = {"cost_ceiling_cny", "vimax_config", "image_model", "image_edit_model", "video_model", "voice_model", "cosyvoice_endpoint", "lipsync_models"}
-        if not isinstance(config, dict) or set(config) - allowed:
-            raise ValueError("配置只接受模型名称、费用上限、ViMax 配置路径和服务端点；密钥请使用环境变量")
-        if not isinstance(config.get("cost_ceiling_cny", {}), dict):
-            raise ValueError("费用上限必须是对象")
-        for amount in config.get("cost_ceiling_cny", {}).values():
-            if not isinstance(amount, (int, float)) or isinstance(amount, bool) or not math.isfinite(amount) or amount <= 0:
-                raise ValueError("费用上限必须是正数")
-        for key in ("vimax_config", "image_model", "image_edit_model", "video_model", "voice_model", "cosyvoice_endpoint"):
-            if key in config and not isinstance(config[key], str):
-                raise ValueError(f"{key} 必须是字符串")
-        if "lipsync_models" in config and (not isinstance(config["lipsync_models"], dict) or any(not isinstance(v, str) for v in config["lipsync_models"].values())):
-            raise ValueError("口型模型配置必须是字符串映射")
-        (store.root / "providers.local.json").write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+        if await request.json() != {}:
+            raise ValueError("请直接编辑 configs/drama.local.yaml；此接口仅重新加载配置")
+        if engine.running:
+            raise Conflict("有任务正在执行，请等待任务结束后重新加载配置")
         engine.provider = load_provider(store)
         return {"ok": True, "mode": engine.provider.mode}
 

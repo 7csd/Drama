@@ -1,9 +1,7 @@
 """Cloud adapters. Local simulation never imports SDKs or sends network requests."""
 import asyncio
 import base64
-import json
 import math
-import os
 import re
 import shutil
 import wave
@@ -13,6 +11,7 @@ import httpx
 from PIL import Image, ImageDraw, ImageFont
 
 from .media import dimensions, ffmpeg, wav_duration
+from .config import load_config
 from .store import digest
 
 
@@ -41,12 +40,10 @@ class Provider:
 
     @property
     def signature(self):
-        plan_config = Path(self.config.get("vimax_config", "configs/agent.local.yaml"))
-        config_hash = digest(plan_config.read_text(encoding="utf-8")) if plan_config.is_file() else None
-        return digest({"mode": self.mode, "config": self.public_config(), "planning_config_hash": config_hash})
+        return digest({"mode": self.mode, "config": self.config})
 
     def public_config(self):
-        allowed = ("cost_ceiling_cny", "vimax_config", "image_model", "image_edit_model", "video_model",
+        allowed = ("mode", "cost_ceiling_cny", "image_model", "image_edit_model", "video_model",
                    "voice_model", "cosyvoice_endpoint", "lipsync_models")
         return {k: v for k, v in self.config.items() if k in allowed}
 
@@ -107,14 +104,14 @@ class CloudProvider(Provider):
             import importlib.util
             if importlib.util.find_spec("langchain") is None:
                 raise ValueError("尚未安装 ViMax 生成依赖，请按 README_WORKBENCH.md 安装")
-            if not Path(self.config.get("vimax_config", "configs/agent.local.yaml")).is_file():
-                raise ValueError("缺少 ViMax 本地配置文件（chat_model.init_args）")
+            if not self.config.get("chat_model", {}).get("init_args", {}).get("api_key"):
+                raise ValueError("请在 configs/drama.local.yaml 配置 chat_model.init_args")
         if op in ("asset_image", "keyframe", "video", "lipsync"):
-            if not os.environ.get("FAL_KEY"):
-                raise ValueError("缺少 FAL_KEY 环境变量")
+            if not self.config.get("fal_key"):
+                raise ValueError("请在 configs/drama.local.yaml 填写 fal_key")
         if op == "tts" and payload.get("dialogue"):
-            if not os.environ.get("DASHSCOPE_API_KEY") or not self.config.get("cosyvoice_endpoint"):
-                raise ValueError("请配置 DASHSCOPE_API_KEY 和 cosyvoice_endpoint")
+            if not self.config.get("dashscope_api_key") or not self.config.get("cosyvoice_endpoint"):
+                raise ValueError("请在 configs/drama.local.yaml 配置 dashscope_api_key 和 cosyvoice_endpoint")
         if op == "video" and payload.get("duration", 0) > 15:
             raise ValueError("当前 Seedance 适配器单镜最长 15 秒，请拆分对白／镜头")
 
@@ -151,14 +148,14 @@ class CloudProvider(Provider):
                 result["result"]["simulated"] = False
                 return result
             response = await self.request("POST", self.config["cosyvoice_endpoint"],
-                headers={"Authorization": "Bearer " + os.environ["DASHSCOPE_API_KEY"]},
+                headers={"Authorization": "Bearer " + self.config["dashscope_api_key"]},
                 json={"model": self.config.get("voice_model", "cosyvoice-v3-plus"), "input": {
                     "text": payload["dialogue"], "voice": payload["voice"], "format": "wav", "sample_rate": 24000}})
             body = response.json()
             # Return the remote URL before downloading: a restart can fetch the same result without resynthesis.
             return {"done": False, "remote": {"kind": "download", "url": body["output"]["audio"]["url"],
                     "request_id": body["request_id"], "name": "voice.wav", "model": self.config.get("voice_model", "cosyvoice-v3-plus")}}
-        headers = {"Authorization": "Key " + os.environ["FAL_KEY"]}
+        headers = {"Authorization": "Key " + self.config["fal_key"]}
         if op in ("asset_image", "keyframe"):
             refs = payload.get("references", [])
             model = self.config.get("image_edit_model", "fal-ai/nano-banana/edit") if refs else self.config.get("image_model", "fal-ai/nano-banana")
@@ -190,7 +187,7 @@ class CloudProvider(Provider):
             url = urlsplit(remote[key])
             if url.scheme != "https" or url.hostname != "queue.fal.run":
                 raise ValueError("非法的 fal 任务 URL")
-        headers = {"Authorization": "Key " + os.environ["FAL_KEY"]}
+        headers = {"Authorization": "Key " + self.config["fal_key"]}
         status = (await self.request("GET", remote["status_url"], headers=headers)).json()
         if status.get("status") in ("FAILED", "CANCELLED"):
             raise RemoteFailed("模型服务端任务失败；未重新提交")
@@ -211,8 +208,5 @@ class CloudProvider(Provider):
 
 
 def load_provider(store):
-    config_path = store.root / "providers.local.json"
-    config = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
-    if os.environ.get("DRAMA_ENABLE_LIVE") == "1":
-        return CloudProvider(store, config)
-    return Provider(store, config)
+    config = load_config()
+    return CloudProvider(store, config) if config.get("mode") == "live" else Provider(store, config)

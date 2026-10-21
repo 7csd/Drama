@@ -1224,10 +1224,10 @@ export default function DramaWorkbench() {
               busy={busy}
               submit={(value) =>
                 action(async () => {
-                  await api("/config", "PUT", JSON.parse(value));
+                  await api("/config", "PUT", {});
                   setHealth(await api<Health>("/health"));
                   setModal(null);
-                }, "服务配置已保存")
+                }, "YAML 配置已重新加载")
               }
             />
           )}
@@ -1773,33 +1773,12 @@ function Settings({
   busy: boolean;
   submit: (v: string) => void;
 }) {
-  const [text, setText] = useState(
-    JSON.stringify(
-      Object.keys(health?.config || {}).length
-        ? health?.config
-        : {
-            vimax_config: "configs/drama.local.yaml",
-            image_model: "fal-ai/nano-banana",
-            image_edit_model: "fal-ai/nano-banana/edit",
-            video_model: "bytedance/seedance-2.0/fast/image-to-video",
-            voice_model: "cosyvoice-v3-plus",
-            cosyvoice_endpoint: "",
-            lipsync_models: {
-              realistic: "fal-ai/latentsync",
-              comic: "fal-ai/latentsync",
-            },
-            cost_ceiling_cny: {},
-          },
-      null,
-      2,
-    ),
-  );
   return (
     <form
       className="dw-form"
       onSubmit={(e) => {
         e.preventDefault();
-        submit(text);
+        submit("");
       }}
     >
       <div className="dw-config-status">
@@ -1811,23 +1790,14 @@ function Settings({
         <span>配音 {health?.voice_configured ? "已配置" : "未配置"}</span>
       </div>
       <p className="dw-footnote">
-        配置不会自动启用付费生成。云模式需在启动服务前设置
-        DRAMA_ENABLE_LIVE=1、FAL_KEY、DASHSCOPE_API_KEY。密钥不填写在此页面。单次费用上限使用人民币，由实际所选模型的最高规格费用确定。
+        所有模型、接口地址、密钥、费用上限和模式统一在 configs/drama.local.yaml 中填写。
+        mode: mock 为离线模拟，mode: live 启用真实付费调用。修改文件后点击下方按钮加载。
       </p>
-      <label>
-        服务配置 JSON
-        <textarea
-          className="dw-code-editor"
-          rows={17}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-      </label>
       <p className="dw-footnote">
         动态漫与写实的口型模型分别配置；需各自通过样镜验证。更换配置会暂停使用旧配置的任务。
       </p>
       <button className="dw-primary" disabled={busy}>
-        保存服务配置
+        重新加载 YAML 配置
       </button>
     </form>
   );

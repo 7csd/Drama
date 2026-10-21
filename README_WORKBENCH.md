@@ -26,31 +26,15 @@ Windows PowerShell，在仓库根目录运行：
 .\.venv\Scripts\python.exe -c "import tomllib,subprocess,sys; deps=tomllib.load(open('pyproject.toml','rb'))['project']['dependencies']; subprocess.run([sys.executable,'-m','pip','install',*deps],check=True)"
 ```
 
-2. 将 `configs/drama.example.yaml` 复制为 `configs/drama.local.yaml`，填写可访问的语言模型名称、端点、密钥。工作台会调用 **ViMax `plan_text_artifacts`** 并规范化为带说话人与精确对白的短剧分镜。角色名、对白顺序或文字变化会阻止后续生成。文字规划本身也会产生模型费用。
-3. 在“模型与服务”保存服务配置：fal 图像／视频／口型模型，CosyVoice HTTP 端点，以及每类调用的人民币费用上限 `cost_ceiling_cny`。端点应为账户所在地区的实际地址；不要把密钥放入此 JSON。
-4. 在启动前设置环境变量，并重启服务：
+2. 将 `configs/drama.example.yaml` 复制为 `configs/drama.local.yaml`（本机已创建模板）。所有模型调用配置统一放在这个 YAML：
+   - `mode`：`mock` 离线模拟，`live` 真实付费调用。
+   - `chat_model.init_args`：规划模型名称、协议、接口地址、API 密钥。
+   - `fal_key`：fal 平台密钥；`image_model`、`image_edit_model`、`video_model`、`lipsync_models`：对应模型标识。fal 队列地址由适配器固定为 `https://queue.fal.run`。
+   - `voice_model`、`cosyvoice_endpoint`、`dashscope_api_key`：配音模型、HTTP 地址和密钥。
+   - `cost_ceiling_cny`：各类任务单次人民币费用上限。
+3. 在页面“模型与服务”点击“重新加载 YAML 配置”，或重启服务。加载失败时保留原配置；修改配置后旧配置任务会暂停。不要在任务执行期间更换配置。
 
-```powershell
-$env:DRAMA_ENABLE_LIVE = '1'
-$env:FAL_KEY = '<your-fal-key>'
-$env:DASHSCOPE_API_KEY = '<your-dashscope-key>'
-.\start-workbench.ps1
-```
-
-配置示例（费用上限必须按实际模型填写，空对象将阻止付费排产）：
-
-```json
-{
-  "vimax_config": "configs/drama.local.yaml",
-  "image_model": "fal-ai/nano-banana",
-  "image_edit_model": "fal-ai/nano-banana/edit",
-  "video_model": "bytedance/seedance-2.0/fast/image-to-video",
-  "voice_model": "cosyvoice-v3-plus",
-  "cosyvoice_endpoint": "https://YOUR_WORKSPACE.cn-beijing.maas.aliyuncs.com/api/v1/services/audio/tts/SpeechSynthesizer",
-  "lipsync_models": {"realistic": "fal-ai/latentsync", "comic": "fal-ai/latentsync"},
-  "cost_ceiling_cny": {}
-}
-```
+不再读取 `.drama/providers.local.json`，不再读取模型密钥或真实模式环境变量，也不自动加载 `.env`。旧用户需把配置手动移入上述 YAML。密钥不会返回到页面；本地 YAML 已被 Git 忽略。ViMax 仍调用 `plan_text_artifacts`，并校验原始说话人与对白。
 
 `cost_ceiling_cny` 需要 `plan`、`asset_image`、`keyframe`、`tts`、`video`、`lipsync` 六项。每项是**一次提交的最高费用估算**，视频应覆盖 15 秒的最高规格，规划应覆盖 ViMax 的多次 LLM 调用，外币调用须自行折算人民币。预算按这个数预占，完成后暂计消耗，不能替代供应商侧账单或硬限额。用 `PATCH /api/drama/jobs/{id}/cost` 填入经账单核验的 `actual_cost`（人民币），包括失败任务与返工，才可计算真实每分钟成本。
 

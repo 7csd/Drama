@@ -1,8 +1,37 @@
-# Copy to configs/drama.local.yaml. Never commit credentials.
-# Used only when DRAMA_ENABLE_LIVE=1. Use a vision-capable chat model.
+# 所有模型调用统一在此配置。真实密钥仅写入 drama.local.yaml，勿提交。
+# 修改后在工作台“模型与服务”点击“重新加载 YAML 配置”，或重启服务。
+mode: mock  # mock: 离线模拟；live: 真实付费调用
+
+# 剧本规划（OpenAI 兼容接口；model_provider 表示调用协议）
 chat_model:
   init_args:
     model_provider: openai
-    model: YOUR_VISION_CAPABLE_MODEL
-    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
-    api_key: REPLACE_WITH_YOUR_KEY
+    model: ""
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    api_key: ""
+
+# fal 平台：图像、视频、口型共用此密钥；接口由适配器调用 queue.fal.run。
+fal_key: ""
+image_model: fal-ai/nano-banana
+image_edit_model: fal-ai/nano-banana/edit
+video_model: bytedance/seedance-2.0/fast/image-to-video
+lipsync_models:
+  realistic: fal-ai/latentsync
+  comic: fal-ai/latentsync
+
+# 配音服务
+voice_model: cosyvoice-v3-plus
+cosyvoice_endpoint: ""  # 填写账户实际的 CosyVoice HTTP 接口地址
+dashscope_api_key: ""
+
+# 单次调用最高费用（人民币），须按实际服务价格填写，不能照抄估算。
+# 启用真实排产前需要填写 plan、asset_image、keyframe、tts、video、lipsync 六项。
+cost_ceiling_cny: {}
+# 示例结构：
+# cost_ceiling_cny:
+#   plan: 实际上限
+#   asset_image: 实际上限
+#   keyframe: 实际上限
+#   tts: 实际上限
+#   video: 实际上限
+#   lipsync: 实际上限

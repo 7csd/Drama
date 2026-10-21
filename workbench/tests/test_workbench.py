@@ -21,7 +21,8 @@ def engine(tmp_path):
 
 @pytest.fixture(autouse=True)
 def no_live_switch_in_tests(monkeypatch):
-    monkeypatch.delenv("DRAMA_ENABLE_LIVE", raising=False)
+    from workbench import config
+    monkeypatch.setattr(config, "CONFIG_PATH", __import__("pathlib").Path("__missing_test_config__.yaml"))
 
 
 def setup_episode(engine, style="comic", budget=50):
@@ -272,7 +273,7 @@ def test_script_revision_archives_shots_and_allows_replanning(tmp_path):
 
 def test_cloud_adapters_keep_secrets_out_of_payload_and_use_measured_voice(tmp_path, monkeypatch):
     monkeypatch.setenv("DASHSCOPE_API_KEY", "test-token")
-    provider = CloudProvider(Store(tmp_path), {"cosyvoice_endpoint": "https://example.test/tts"})
+    provider = CloudProvider(Store(tmp_path), {"cosyvoice_endpoint": "https://example.test/tts", "dashscope_api_key": "test-token"})
     captured = {}
     async def request(method, url, **kwargs):
         captured.update(kwargs)
@@ -323,7 +324,7 @@ def test_blocked_dependencies_can_continue_after_a_definite_failure_is_fixed(eng
 def test_fal_adapters_submit_once_then_retrieve_original_result(tmp_path, monkeypatch, op):
     monkeypatch.setenv("FAL_KEY", "not-a-real-key")
     store = Store(tmp_path)
-    provider = CloudProvider(store)
+    provider = CloudProvider(store, {"fal_key": "not-a-real-key"})
     media_folder = store.media_path("input")
     media_folder.mkdir()
     (media_folder / "image.png").write_bytes(b"image")

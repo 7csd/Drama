@@ -1,6 +1,5 @@
 """Reuse ViMax's text planning, with a strict short-drama interchange schema."""
 import json
-from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -30,13 +29,11 @@ class DramaPlan(BaseModel):
 
 
 async def plan(store, job, payload, config):
-    import yaml
     from langchain.chat_models import init_chat_model
     from pipelines.script2video_pipeline import Script2VideoPipeline
     from utils.provider_presets import resolve_chat_model_config
 
-    path = Path(config.get("vimax_config", "configs/agent.local.yaml"))
-    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data = config
     model = init_chat_model(**resolve_chat_model_config(data["chat_model"]["init_args"]))
     # The planning-only entrypoint never touches either media generator.
     pipeline = Script2VideoPipeline(model, None, None, str(store.root / "plans" / job["id"]),
